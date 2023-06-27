@@ -31,7 +31,7 @@ public:
      * @param origSize 输入原始图像Size
      * @param dstSize 输出图像Size
      */
-    void init(const cv::Size &origSize, const cv::Size &dstSize,bool flag)
+    void init(const cv::Size &origSize, const cv::Size &dstSize,bool flag,std::string path)
     {
         // 原始域：分辨率320x240
         // The 4-points at the input image
@@ -60,18 +60,18 @@ public:
 
         if(flag==false)
         {
-            cv::Mat src_tupian = imread("H:/opencvdaima/wandao/1812.jpg", cv::INTER_LINEAR); // 前一个参数是照片的路径 第二个是opencv读取的图片类型
+            cv::Mat src_tupian = imread(path, cv::INTER_LINEAR); // 前一个参数是照片的路径 第二个是opencv读取的图片类型
             cv::imshow("img", src_tupian);
             cv::Mat _dstImg;
             homographyInv(src_tupian, _dstImg, cv::INTER_LINEAR);
             // homography(src_tupian,_dstImg);
             cv::imshow("img1", _dstImg); // 展示图片  建议调试用   比赛时候不用
-            cv::waitKey(100);
+            cv::waitKey(10000);
         }
         else
         {
             VideoCapture cap;
-            cap.open("H:/opencvdaima/sample.mp4");
+            cap.open(path);
             while(cap.isOpened())
             {
                 cv::Mat frame;
