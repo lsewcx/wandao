@@ -1,0 +1,9 @@
+{
+    "C_Cpp.errorSquiggles": "disabled",
+    "files.associations": {
+        ".eslintrc": "json",
+        "*.vue": "html",
+        "array": "cpp",
+        "string_view": "cpp"
+    }
+}
