@@ -35,7 +35,7 @@ public:
      * @param origSize 输入原始图像Size
      * @param dstSize 输出图像Size
      */
-    Mat init(const cv::Size &origSize, const cv::Size &dstSize, bool flag, std::string path)
+    void init(const cv::Size &origSize, const cv::Size &dstSize, bool flag, std::string path)
     {
         // 原始域：分辨率320x240
         // The 4-points at the input image
@@ -96,7 +96,6 @@ public:
                 cv::imshow("img1", _dstImg); // 展示图片  建议调试用   比赛时候不用
             }
         }
-        return _dstImg;
     }
 
     /**

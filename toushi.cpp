@@ -24,13 +24,13 @@ int main()
     bool flag = true; // false跑照片  true跑视频 启用视频时需要关闭照片才能运行哦
     if (flag == false)
     {
-        cv::imshow("imag1", ipm.init(Size(320, 240),
-                                     Size(320, 400), flag, picturepath));
+        ipm.init(Size(320, 240),
+                Size(320, 400), flag, picturepath);
     }
     else
     {
-        cv::imshow("imag1", ipm.init(Size(320, 240),
-                                     Size(320, 400), flag, videopath));
+        ipm.init(Size(320, 240),
+            Size(320, 400), flag, videopath);
     }
     return 0;
 }
