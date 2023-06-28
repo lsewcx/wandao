@@ -18,9 +18,13 @@
 #include <opencv2/opencv.hpp>
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
+#include "image_preprocess.cpp"
+#include "path_searching.cpp"
 
 using namespace cv;
 using namespace std;
+ImagePreprocess binarization;
+PathSearching path1;
 
 class PerspectiveMapping
 {
@@ -31,7 +35,7 @@ public:
      * @param origSize 输入原始图像Size
      * @param dstSize 输出图像Size
      */
-    void init(const cv::Size &origSize, const cv::Size &dstSize,bool flag,std::string path)
+    Mat init(const cv::Size &origSize, const cv::Size &dstSize, bool flag, std::string path)
     {
         // 原始域：分辨率320x240
         // The 4-points at the input image
@@ -58,11 +62,10 @@ public:
 
         createMaps();
 
-        if(flag==false)
+        if (flag == false)
         {
             cv::Mat src_tupian = imread(path, cv::INTER_LINEAR); // 前一个参数是照片的路径 第二个是opencv读取的图片类型
-            cv::imshow("img", src_tupian);
-            cv::Mat _dstImg;
+            // cv::imshow("img", src_tupian);
             homographyInv(src_tupian, _dstImg, cv::INTER_LINEAR);
             // homography(src_tupian,_dstImg);
             cv::imshow("img1", _dstImg); // 展示图片  建议调试用   比赛时候不用
@@ -72,13 +75,19 @@ public:
         {
             VideoCapture cap;
             cap.open(path);
-            while(cap.isOpened())
+            while (cap.isOpened())
             {
                 cv::Mat frame;
                 cap.read(frame);
-                cv::imshow("img", frame);
-                cv::Mat _dstImg;
+                // cv::imshow("img", frame);
                 homography(frame, _dstImg);
+                cv::Mat fram1 = binarization.imageBinaryzation(_dstImg);
+
+                // 二值化
+                cv::imshow("imag1", fram1);
+                // 路径搜索
+                cv::imshow("imag2", path1.pathSearch(fram1));
+
                 char key = waitKey(10);
                 if (key == 27)
                 {
@@ -87,6 +96,7 @@ public:
                 cv::imshow("img1", _dstImg); // 展示图片  建议调试用   比赛时候不用
             }
         }
+        return _dstImg;
     }
 
     /**
@@ -250,6 +260,8 @@ private:
     // Maps
     cv::Mat m_mapX, m_mapY;
     cv::Mat m_invMapX, m_invMapY;
+
+    cv::Mat _dstImg;
 
     void createMaps()
     {
