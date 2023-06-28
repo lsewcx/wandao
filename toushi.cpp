@@ -18,11 +18,11 @@ cv::Mat _dstImg;
 
 int main()
 {
-    picturepath = "H:/opencvdaima/wandao/1812.jpg";
-    videopath = "H:/opencvdaima/wandao/sample.mp4"; // 视频路径
+    picturepath = "H:/opencvdaima/wandao/1812.jpg";//图片路径
+    videopath = "H:/opencvdaima/wandao/sample.mp4";// 视频路径
     // 透视变换的部分
-    bool flag = true; // false跑照片  true跑视频 启用视频时需要关闭照片才能运行哦
-    if (flag == false)
+    bool flag = false; // false跑视频  true跑照片 启用视频时需要关闭照片才能运行哦
+    if (flag == true)
     {
         ipm.init(Size(320, 240),
                 Size(320, 400), flag, picturepath);
@@ -32,5 +32,6 @@ int main()
         ipm.init(Size(320, 240),
             Size(320, 400), flag, videopath);
     }
+
     return 0;
 }

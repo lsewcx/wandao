@@ -61,14 +61,18 @@ public:
         m_H_inv = m_H.inv();                                      // 求解逆转换矩阵
 
         createMaps();
+        
 
-        if (flag == false)
+        if (flag == true)
         {
             cv::Mat src_tupian = imread(path, cv::INTER_LINEAR); // 前一个参数是照片的路径 第二个是opencv读取的图片类型
             // cv::imshow("img", src_tupian);
-            homographyInv(src_tupian, _dstImg, cv::INTER_LINEAR);
-            // homography(src_tupian,_dstImg);
+            homography(src_tupian,_dstImg);
+            // cv::Mat dst;
+            // homographyInv(_dstImg, dst, cv::INTER_LINEAR);
             cv::imshow("img1", _dstImg); // 展示图片  建议调试用   比赛时候不用
+
+
             cv::waitKey(10000);
         }
         else
@@ -79,21 +83,23 @@ public:
             {
                 cv::Mat frame;
                 cap.read(frame);
-                // cv::imshow("img", frame);
+                // cv::imshow("原始图像", frame);
                 homography(frame, _dstImg);
+                // drawBorder(m_dstPoints,_dstImg);
+                cv::imshow("透视变换图像", _dstImg);
                 cv::Mat fram1 = binarization.imageBinaryzation(_dstImg);
-
                 // 二值化
-                cv::imshow("imag1", fram1);
+
+                cv::imshow("二值化图像", fram1);
                 // 路径搜索
-                cv::imshow("imag2", path1.pathSearch(fram1));
+                cv::imshow("路径搜索", path1.pathSearch(fram1));
 
                 char key = waitKey(10);
                 if (key == 27)
                 {
                     break;
                 }
-                cv::imshow("img1", _dstImg); // 展示图片  建议调试用   比赛时候不用
+                // cv::imshow("img2", _dstImg); // 展示图片  建议调试用   比赛时候不用
             }
         }
     }
