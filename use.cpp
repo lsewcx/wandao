@@ -94,7 +94,7 @@ public:
                 // 路径搜索
                 cv::imshow("路径搜索", path1.pathSearch(fram1));
 
-                char key = waitKey(10);
+                char key = waitKey(10);//读取视频
                 if (key == 27)
                 {
                     break;
