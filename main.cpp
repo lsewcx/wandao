@@ -58,8 +58,6 @@ int main()
         cv::imshow("image123",frame3);
 
 
-         // [04] 出库和入库识别与路径规划
-
         // [11] 环岛识别与处理
 
         if (roadType == RoadType::RingHandle ||

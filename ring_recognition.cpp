@@ -241,7 +241,7 @@ public:
                 i != track.widthBlock.size() - 1) {
               rowRepairRingside = i;
               break;
-              // rowYendStraightside = track.pointsEdgeLeft[i].x;
+              rowYendStraightside = track.pointsEdgeLeft[i].x;
             }
           }
 
@@ -437,57 +437,57 @@ public:
     }
 
     // //清掉边界的edge点
-    // vector<POINT> v_temp, v_temp2;
-    // for (int jj = 0; jj < track.pointsEdgeLeft.size(); ++jj)
-    // {
-    //     if (track.pointsEdgeLeft[jj].y > 2)
-    //     {
-    //         v_temp.push_back(track.pointsEdgeLeft[jj]);
-    //     }
-    //     else
-    //     {
-    //         if (jj > track.pointsEdgeLeft.size() * 9 / 10)
-    //         {
-    //             break;
-    //         }
-    //     }
+    vector<POINT> v_temp, v_temp2;
+    for (int jj = 0; jj < track.pointsEdgeLeft.size(); ++jj)
+    {
+        if (track.pointsEdgeLeft[jj].y > 2)
+        {
+            v_temp.push_back(track.pointsEdgeLeft[jj]);
+        }
+        else
+        {
+            if (jj > track.pointsEdgeLeft.size() * 9 / 10)
+            {
+                break;
+            }
+        }
 
-    //     if (track.pointsEdgeLeft[jj].y > COLSIMAGE * 9 / 10 && jj <
-    //     track.pointsEdgeLeft.size() - 5)
-    //     {
-    //         break;
-    //     }
-    // }
-    // track.pointsEdgeLeft = v_temp;
-    // if (track.pointsEdgeLeft.size() < 5)
-    // {
-    //     track.pointsEdgeLeft.resize(0);
-    // }
+        if (track.pointsEdgeLeft[jj].y > COLSIMAGE * 9 / 10 && jj <
+        track.pointsEdgeLeft.size() - 5)
+        {
+            break;
+        }
+    }
+    track.pointsEdgeLeft = v_temp;
+    if (track.pointsEdgeLeft.size() < 5)
+    {
+        track.pointsEdgeLeft.resize(0);
+    }
 
-    // for (int jj = 0; jj < track.pointsEdgeRight.size(); ++jj)
-    // {
-    //     if (track.pointsEdgeRight[jj].y < COLSIMAGE - 3)
-    //     {
-    //         v_temp2.push_back(track.pointsEdgeRight[jj]);
-    //     }
-    //     else
-    //     {
-    //         if (jj > track.pointsEdgeRight.size() * 9 / 10)
-    //         {
-    //             break;
-    //         }
-    //     }
-    //     if (track.pointsEdgeRight[jj].y < COLSIMAGE / 10 && jj <
-    //     track.pointsEdgeRight.size() - 5)
-    //     {
-    //         break;
-    //     }
-    // }
-    // track.pointsEdgeRight = v_temp2;
-    // if (track.pointsEdgeRight.size() < 5)
-    // {
-    //     track.pointsEdgeRight.resize(0);
-    // }
+    for (int jj = 0; jj < track.pointsEdgeRight.size(); ++jj)
+    {
+        if (track.pointsEdgeRight[jj].y < COLSIMAGE - 3)
+        {
+            v_temp2.push_back(track.pointsEdgeRight[jj]);
+        }
+        else
+        {
+            if (jj > track.pointsEdgeRight.size() * 9 / 10)
+            {
+                break;
+            }
+        }
+        if (track.pointsEdgeRight[jj].y < COLSIMAGE / 10 && jj <
+        track.pointsEdgeRight.size() - 5)
+        {
+            break;
+        }
+    }
+    track.pointsEdgeRight = v_temp2;
+    if (track.pointsEdgeRight.size() < 5)
+    {
+        track.pointsEdgeRight.resize(0);
+    }
 
     // 出环，切回正常循迹
     if (ringStep == RingStep::Finish) {
