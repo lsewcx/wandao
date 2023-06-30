@@ -18,13 +18,11 @@
 #include <opencv2/opencv.hpp>
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
-#include "image_preprocess.cpp"
-#include "path_searching.cpp"
+
 
 using namespace cv;
 using namespace std;
-ImagePreprocess binarization;
-PathSearching path1;
+
 
 class PerspectiveMapping
 {
@@ -70,10 +68,7 @@ public:
             homography(src_tupian,_dstImg);
             // cv::Mat dst;
             // homographyInv(_dstImg, dst, cv::INTER_LINEAR);
-            cv::imshow("img1", _dstImg); // 展示图片  建议调试用   比赛时候不用
-
-
-            cv::waitKey(10000);
+            // cv::imshow("img1", _dstImg); // 展示图片  建议调试用   比赛时候不用
         }
         else
         {
@@ -88,11 +83,29 @@ public:
                 // drawBorder(m_dstPoints,_dstImg);
                 cv::imshow("透视变换图像", _dstImg);
                 cv::Mat fram1 = binarization.imageBinaryzation(_dstImg);
-                // 二值化
 
-                cv::imshow("二值化图像", fram1);
+
+
+                cv::Mat fram2 = binarization.imageBinaryzation(frame);
+                cv::Mat fram3 = path1.pathSearch(fram2);
+                cv::Mat fram4=binarization.imageBinaryzation(fram3);
+                // 二值化
+                 cv::imshow("路径搜索", fram4);
+
+                // cv::imshow("二值化图像", fram1);
+
+                //  Mat imageRing =
+                // Mat::zeros(Size(320, 240), CV_8UC3);
+                // ringRecognition.ringRecognition(trackRecognition,fram1);
+                // ringRecognition.drawImage(trackRecognition, imageRing);
+                // imshow("imageRecognition", imageRing);
+
+
                 // 路径搜索
-                cv::imshow("路径搜索", path1.pathSearch(fram1));
+                // cv::imshow("路径搜索", path1.pathSearch(fram1));
+
+
+
 
                 char key = waitKey(10);//读取视频
                 if (key == 27)
@@ -267,6 +280,7 @@ private:
     cv::Mat m_invMapX, m_invMapY;
 
     cv::Mat _dstImg;
+    cv::Mat fram1;
 
     void createMaps()
     {

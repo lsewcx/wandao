@@ -73,7 +73,7 @@ public:
             }
         }
         drawContours(imagePath, points, indexAreaMax, Scalar(238, 238, 175), 1);
-        imshow("imageContours", imagePath);
+        // imshow("imageContours", imagePath);
 
     findMark:
         for (int i = 0; i < points[indexAreaMax].size(); i++)
