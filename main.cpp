@@ -80,7 +80,6 @@ int main()
         trackRecognition.drawImage(frame); // 图像显示赛道线识别结果
         controlCenterCal.controlCenterCal(trackRecognition); // 根据赛道边缘信息拟合运动控制中心
         controlCenterCal.drawImage(trackRecognition, frame);
-        imshow("imageTrack", frame);
         switch (roadType)
         {
             case RoadType::BaseHandle: // 基础赛道处理 // 基础赛道处理
@@ -94,9 +93,9 @@ int main()
                         CV_AA); // 显示赛道识别类型
                 break;
         }
+        imshow("imageTrack", frame);
 
-
-        char key = waitKey(10);//读取视频
+        char key = waitKey(30);//读取视频修改waitkey里面的参数可以修改图片播放的速度
         if (key == 27)
         {
             break;
