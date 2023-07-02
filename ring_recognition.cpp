@@ -128,12 +128,13 @@ public:
       if (track.widthBlock[i].y > track.widthBlock[i - 1].y &&
           track.widthBlock[i].y > COLSIMAGE * 0.6 &&
           track.widthBlock[i].x > 30 &&
-          ((track.stdevLeft > 150 && track.stdevRight < 30) || // 120    50
+          ((track.stdevLeft > 120 && track.stdevRight < 50) || // 120    50
            ringStep == RingStep::Entering)) // 搜索突然变宽的路径行数
                                             // stdevLeft左斜率  斜率应该要调小
       {
         ++countWide;
-      } else {
+      } 
+      else {
         countWide = 0;
       }
       // [1] 入环判断
@@ -266,13 +267,13 @@ public:
 
 
               //修改过
-              for (int i = 0; i < track.spurroad.size(); i++)
-              {
-                  if (track.spurroad[i].y < startPoint.y &&
-                  track.spurroad[i].x < startPoint.x)
-                      endPoint = track.spurroad[i];
-                  break;
-              }
+              // for (int i = 0; i < track.spurroad.size(); i++)
+              // {
+              //     if (track.spurroad[i].y < startPoint.y &&
+              //     track.spurroad[i].x < startPoint.x)
+              //         endPoint = track.spurroad[i];
+              //     break;
+              // }
 
               vector<POINT> input = {startPoint, midPoint, endPoint};
               vector<POINT> b_modify = Bezier(0.02, input);
@@ -310,16 +311,13 @@ public:
 
 
           //修改过
-          for (int i = 0; i < track.spurroad.size(); i++)
-          {
-              if (track.spurroad[i].y < startPoint.y && track.spurroad[i].x <
-              startPoint.x)
-                  endPoint = track.spurroad[i];
-              break;
-          }
-
-
-
+          // for (int i = 0; i < track.spurroad.size(); i++)
+          // {
+          //     if (track.spurroad[i].y < startPoint.y && track.spurroad[i].x <
+          //     startPoint.x)
+          //         endPoint = track.spurroad[i];
+          //     break;
+          // }
 
 
           POINT midPoint =

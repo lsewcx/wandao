@@ -1,5 +1,6 @@
 /**
  * @note 此文件为主函数在此调用 如要返回图像值void 改Mat即可
+ * @author lse
  */
 
 #include <iostream>
@@ -10,10 +11,54 @@
 #include "opencv2/imgproc.hpp"
 #include "public.hpp"
 #include "use.cpp"
+#include <exception>
+#include "json.hpp"
+
+
+struct Params
+{
+    float speedLow = 1.0;                           // 智能车最低速
+    float speedHigh = 1.0;                          // 智能车最高速
+    float speedDown = 0.6;                          // 特殊区域降速速度
+    float speedBridge = 1.0;                        // 坡道（桥）行驶速度
+    float speedSlowzone = 1.0;                      // 慢行区行驶速度
+    float speedGarage = 1.0;                        // 出入车库速度
+    float runP1 = 0.9;                              // 一阶比例系数：直线控制量
+    float runP2 = 0.018;                            // 二阶比例系数：弯道控制量
+    float runP3 = 0.0;                              // 三阶比例系数：弯道控制量
+    float turnP = 3.5;                              // 一阶比例系数：转弯控制量
+    float turnD = 3.5;                              // 一阶微分系数：转弯控制量
+    bool debug = false;                             // 调试模式使能
+    bool saveImage = false;                         // 存图使能
+    uint16_t rowCutUp = 10;                         // 图像顶部切行
+    uint16_t rowCutBottom = 10;                     // 图像顶部切行
+    float disGarageEntry = 0.7;                     // 车库入库距离(斑马线Image占比)
+    bool GarageEnable = true;                       // 出入库使能
+    bool BridgeEnable = true;                       // 坡道使能
+    bool FreezoneEnable = true;                     // 泛行区使能
+    bool RingEnable = true;                         // 环岛使能
+    bool CrossEnable = true;                        // 十字使能
+    bool GranaryEnable = true;                      // 粮仓使能
+    bool DepotEnable = true;                        // 修车厂使能
+    bool FarmlandEnable = true;                     // 农田使能
+    bool SlowzoneEnable = true;                     // 慢行区使能
+    bool flag=false;
+    uint16_t circles = 2;                           // 智能车运行圈数
+    string pathVideo = "../res/samples/sample.mp4"; // 视频路径
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Params, flag,speedLow, speedHigh, speedDown, speedBridge, speedSlowzone, speedGarage,
+                                       runP1, runP2, runP3, turnP, turnD, debug, saveImage, rowCutUp, rowCutBottom, disGarageEntry,
+                                       GarageEnable, BridgeEnable, FreezoneEnable, RingEnable, CrossEnable, GranaryEnable, DepotEnable, FarmlandEnable, SlowzoneEnable, circles, pathVideo); // 添加构造函数
+    };
+
+
+
+
 
 PerspectiveMapping ipm;
+Params params;
 using namespace std;
 using namespace cv;
+using nlohmann::json;
 
 std::string picturepath;
 std::string videopath;
@@ -23,31 +68,20 @@ cv::Mat _dstImg;
 cv::Mat frame;
 cv::Mat fram1;
 
-
-
-int main()
+struct MyException : public exception
 {
-    RoadType roadType = RoadType::BaseHandle; 
-    picturepath = "H:/opencvdaima/wandao/1812.jpg"; // 图片路径
-    videopath = "H:/opencvdaima/wandao/sample.mp4"; // 视频路径
+  const char * what () const throw ()
+  {
+    return "error";
+  }
+};
 
 
-    // 透视变换的部分
-    // bool flag = false; // false跑视频  true跑照片 启用视频时需要关闭照片才能运行哦
-    // if (flag == true)
-    // {
-    //     ipm.init(Size(320, 240),
-    //              Size(320, 400), flag, picturepath);
-    // }
-    // else
-    // {
-    //     ipm.init(Size(320, 240),
-    //              Size(320, 400), flag,videopath);
-    // }
-
-
+void video(RoadType roadType)
+{
     VideoCapture cap;
     cap.open(videopath);
+    if(!cap.isOpened())  throw MyException();
     while(cap.isOpened())
     {
         cv::Mat frame;
@@ -59,7 +93,6 @@ int main()
 
 
         // [11] 环岛识别与处理
-
         if (roadType == RoadType::RingHandle ||
           roadType == RoadType::BaseHandle)
         {
@@ -95,10 +128,47 @@ int main()
         }
         imshow("imageTrack", frame);
 
-        char key = waitKey(30);//读取视频修改waitkey里面的参数可以修改图片播放的速度
+        char key = waitKey(40);//读取视频修改waitkey里面的参数可以修改图片播放的速度
         if (key == 27)
         {
             break;
         }
+    }
+}
+
+
+int main()
+{
+    RoadType roadType = RoadType::BaseHandle; 
+    picturepath = "H:/opencvdaima/wandao/1812.jpg"; // 图片路径
+    videopath = "H:/opencvdaima/wandao/sample.mp4"; // 视频路径
+
+
+    // 透视变换的部分
+    // bool flag = false; // false跑视频  true跑照片 启用视频时需要关闭照片才能运行哦
+    // if (flag == true)
+    // {
+    //     ipm.init(Size(320, 240),
+    //              Size(320, 400), flag, picturepath);
+    // }
+    // else
+    // {
+    //     ipm.init(Size(320, 240),
+    //              Size(320, 400), flag,videopath);
+    // }
+    // video(roadType);
+    string jsonPath="H:/opencvdaima/wandao/motion.json";
+    std::ifstream config_is(jsonPath);
+    json js_value;
+    config_is >> js_value;
+    params = js_value.get<Params>();
+    cout<<params.flag;
+    try
+    {
+        video(roadType);
+    }
+    catch(MyException& e)
+    {
+        std::cout << e.what() << std::endl;
     }
 }
