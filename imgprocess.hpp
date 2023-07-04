@@ -6,10 +6,10 @@
 // #include "../core/detection.hpp"
 #include "logger_helper.hpp"
 // #include "../utils/serial_packets.hpp"
-// #include "_define.hpp"
+#include "_define.hpp"
 // #include "_extern.hpp"
 // #include "_sideline.hpp"
-#include "elements/_circle.hpp"
+#include "circle.hpp"
 // #include "elements/_cross.hpp"
 // #include "elements/_garage.hpp"
 // #include "elements/_gas.hpp"
@@ -24,7 +24,6 @@ class ImageProcess {
 
    public:
     int init(std::string config_path, bool is_result);
-    void process(cv::Mat &mat_origin, cv::Mat &mat_result, Payload_t &payload);
 
    private:
     bool _is_result = false;  // 是否生成处理后的图像
@@ -47,8 +46,6 @@ class ImageProcess {
     uint16_t speed_diff = 0;  // 减速率
 
    public:
-    std::shared_ptr<ControlConfig> _config;           // 跑车配置文件
-    std::vector<DetectionPredictResult> _det_result;  // 目标检测结果
 
     cv::Mat mat_bin;  // 原图转二值化图
     cv::Mat mat_lab;  // 原图转 LAB 图
@@ -79,12 +76,6 @@ class ImageProcess {
     bool special_w = false;    // 施工区结束特殊处理
     bool special_g = false;    // 加油站结束特殊处理
 
-    /* *********************************************************************** */
-    /* ****************************** 下位机数据 ****************************** */
-    /* *********************************************************************** */
-
-   public:
-    Encoder_t encoder = {0};
 
     /* *********************************************************************** */
     /* ***************************** 目标检测数据 ***************************** */

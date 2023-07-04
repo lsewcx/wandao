@@ -3,7 +3,7 @@
 #include "ring_recognition.cpp"
 #include "track_recognition.cpp"
 #include "controlcenter_cal.cpp"
-#include "farmland_detection.cpp"
+// #include "farmland_detection.cpp"
 
 
 ImagePreprocess binarization;
@@ -11,7 +11,7 @@ PathSearching path1;
 RingRecognition  ringRecognition;
 TrackRecognition trackRecognition;
 ControlCenterCal controlCenterCal;
-FarmlandDetection farmlandDetection;
+// FarmlandDetection farmlandDetection;
 
 
 

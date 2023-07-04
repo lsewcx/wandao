@@ -28,13 +28,13 @@
  *          5：出环结束
  */
 
+#include "common.hpp"
 #include "track_recognition.cpp"
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
-#include <opencv2/imgproc/imgproc_c.h>
 
 using namespace cv;
 using namespace std;
@@ -69,9 +69,9 @@ public:
 
     bool ringEnable = false;                    // 判环标志
     RingType ringTypeTemp = RingType::RingNone; // 环岛类型：临时变量
-    int rowBreakpointLeft = 0;       // 边缘拐点起始行（左）
-    int rowBreakpointRight = 0;      // 边缘拐点起始行（右）
-    int colEnterRing = 0;            // 入环点（图像列序号）
+    int rowBreakpointLeft = 0;  // 边缘拐点起始行（左）
+    int rowBreakpointRight = 0; // 边缘拐点起始行（右）
+    int colEnterRing = 0;       // 入环点（图像列序号）
     int rowRepairRingside =
         track.widthBlock.size() - 1; // 环一侧，补线起点（行号）
     int rowRepairStraightside =
@@ -125,22 +125,18 @@ public:
     // 判环
     int countWide = 0; // 环岛入口变宽区域行数
     for (int i = 1; i < track.widthBlock.size(); ++i) {
-        //cout << i << " " << track.widthBlock[i].x << " " << track.widthBlock[i].y << endl;
       if (track.widthBlock[i].y > track.widthBlock[i - 1].y &&
-          track.widthBlock[i].y > COLSIMAGE * 0.6 &&
+          track.widthBlock[i].y > COLSIMAGE * 0.70 &&
           track.widthBlock[i].x > 30 &&
-          ((track.stdevLeft > 180 && track.stdevRight < 35) || // 120    50
-           ringStep == RingStep::Entering)) // 搜索突然变宽的路径行数
-                                            // stdevLeft左斜率  斜率应该要调小
+          ((track.stdevLeft > 120 && track.stdevRight < 50) ||
+           ringStep == RingStep::Entering || 
+           track.stdevLeft < 50 && track.stdevRight > 120)) // 搜索突然变宽的路径行数
       {
         ++countWide;
-        // cout << track.stdevLeft << " " << track.stdevRight << endl;
-        //cout << i << " " << track.widthBlock[i].x << " " << track.widthBlock[i].y << endl;
-      } 
-      else 
-      {
+      } else {
         countWide = 0;
       }
+      // if(countWide >= 5) cout << countWide << " " ;
       // [1] 入环判断
       if ((ringStep == RingStep::None || ringStep == RingStep::Entering) &&
           countWide >= 5 && !track.spurroad.empty()) {
@@ -171,11 +167,13 @@ public:
             rowRepairLine = i; // 用于环补线的行号
             colRepairLine = track.pointsEdgeRight[i].x; // 用于环补线的列号
           }
+
+
         }
 
         // 内圆检测
         if ((ringTypeTemp == RingType::RingLeft &&
-             colEnterRing - track.pointsEdgeLeft[i].y >= 3) ||
+             colEnterRing - track.pointsEdgeLeft[i].y >= 3) || //3
             (ringTypeTemp == RingType::RingRight &&
              track.pointsEdgeRight[i].y - colEnterRing >= 3)) {
           ringEnable = true;
@@ -188,16 +186,16 @@ public:
           countWide = 0;
         }
       }
-      if (ringStep == RingStep::Entering && ringEnable == false) {
-        ringEnable = true;
-        rowRepairStraightside = rowRepairLine;
+      if(ringStep == RingStep::Entering && ringEnable == false){
+          ringEnable = true;
+          rowRepairStraightside = rowRepairLine;
       }
 
       if (ringEnable == true && ringStep == RingStep::Entering) {
         if (ringTypeTemp == RingType::RingLeft) {
           if (track.pointsEdgeLeft[i].y <= 2 &&
-              i != track.widthBlock.size() - 1) {
-            if (rowRepairRingside == track.widthBlock.size() - 1) {
+              i != track.widthBlock.size() - 1) {   //需要进行环岛补线操作
+            if (rowRepairRingside == track.widthBlock.size() - 1) { //环岛补线行为最后一行
               rowRepairRingside = i;
             }
             rowYendStraightside = track.pointsEdgeLeft[i].x;
@@ -216,19 +214,51 @@ public:
             POINT midPoint(x, y);                             // 补线：中点
             POINT endPoint(rowYendStraightside, 0);           // 补线：终点
 
-            
             vector<POINT> input = {startPoint, midPoint, endPoint};
             vector<POINT> b_modify = Bezier(0.01, input);
             track.pointsEdgeLeft.resize(rowRepairRingside);
             track.pointsEdgeRight.resize(rowRepairStraightside);
+
             for (int kk = 0; kk < b_modify.size(); ++kk) {
               track.pointsEdgeRight.emplace_back(b_modify[kk]);
             }
-             //cout << startPoint.x << " " << startPoint.y << endl;
-             //cout << endPoint.x << " " << endPoint.y << endl;
+
             break;
           }
-        }
+        } else if (ringTypeTemp == RingType::RingRight) {
+              if (track.pointsEdgeRight[i].y >= COLSIMAGE - 5 &&
+                  i != track.widthBlock.size() - 1) {   //需要进行环岛补线操作
+                  if (rowRepairRingside == track.widthBlock.size() - 1) { //环岛补线行为最后一行
+                      rowRepairRingside = i;
+                  }
+                  rowYendStraightside = track.pointsEdgeRight[i].x;
+              } else if (rowRepairRingside != track.widthBlock.size() - 1) {
+
+                  int x = track.pointsEdgeRight[rowRepairStraightside].x +
+                          (rowYendStraightside -
+                           track.pointsEdgeLeft[rowRepairStraightside].x) *
+                          5 / 4;
+                  int y = (track.pointsEdgeRight[rowRepairStraightside].y +
+                           track.pointsEdgeLeft[rowRepairStraightside].y) /
+                          2;
+
+                  POINT startPoint =
+                          track.pointsEdgeLeft[rowRepairStraightside]; // 补线：起点
+                  POINT midPoint(x, y);                             // 补线：中点
+                  POINT endPoint(rowYendStraightside, COLSIMAGE - 1);           // 补线：终点
+
+                  vector<POINT> input = {startPoint, midPoint, endPoint};
+                  vector<POINT> b_modify = Bezier(0.01, input);
+                  track.pointsEdgeRight.resize(rowRepairRingside);
+                  track.pointsEdgeLeft.resize(rowRepairStraightside);
+
+                  for (int kk = 0; kk < b_modify.size(); ++kk) {
+                      track.pointsEdgeLeft.emplace_back(b_modify[kk]);
+                  }
+
+                  break;
+              }
+          }
       }
     }
 
@@ -249,7 +279,7 @@ public:
                 i != track.widthBlock.size() - 1) {
               rowRepairRingside = i;
               break;
-              rowYendStraightside = track.pointsEdgeLeft[i].x;
+              // rowYendStraightside = track.pointsEdgeLeft[i].x;
             }
           }
 
@@ -272,15 +302,13 @@ public:
               POINT midPoint(x, y);                   // 补线：中点
               POINT endPoint(rowYendStraightside, 0); // 补线：终点
 
-
-              //修改过
-              // for (int i = 0; i < track.spurroad.size(); i++)
-              // {
-              //     if (track.spurroad[i].y < startPoint.y &&
-              //     track.spurroad[i].x < startPoint.x)
-              //         endPoint = track.spurroad[i];
-              //     break;
-              // }
+               for (int i = 0; i < track.spurroad.size(); i++)
+               {
+                   if (track.spurroad[i].y < startPoint.y &&
+                   track.spurroad[i].x < startPoint.x)
+                       endPoint = track.spurroad[i];
+                   break;
+               }
 
               vector<POINT> input = {startPoint, midPoint, endPoint};
               vector<POINT> b_modify = Bezier(0.02, input);
@@ -297,6 +325,7 @@ public:
       }
       // 本场没判出环，有分叉
       else {
+
         if (ringType == RingType::RingLeft &&
             track.pointsEdgeRight.size() > 1) {
           tmp_ttttt = 2;
@@ -316,15 +345,14 @@ public:
           POINT endPoint(x_end, 0);                        // 补线：终点
 
 
+           for (int i = 0; i < track.spurroad.size(); i++)
+           {
+               if (track.spurroad[i].y < startPoint.y && track.spurroad[i].x <
+               startPoint.x)
+                   endPoint = track.spurroad[i];
+               break;
+           }
 
-          //修改过
-          // for (int i = 0; i < track.spurroad.size(); i++)
-          // {
-          //     if (track.spurroad[i].y < startPoint.y && track.spurroad[i].x <
-          //     startPoint.x)
-          //         endPoint = track.spurroad[i];
-          //     break;
-          // }
 
 
           POINT midPoint =
@@ -340,23 +368,19 @@ public:
         }
       }
     }
-    cout<<counterSpurroad<<' ';
     // 环中
     if (ringStep == RingStep::Entering && track.spurroad.empty() &&
-        counterSpurroad >= 3) {
+        counterSpurroad >= 3) { // >= 3
       ringStep = RingStep::Inside;
-      // cout << counterSpurroad<<' ';
-      //cout << 1;
     }
     // 出环补线
     if (ringStep == RingStep::Inside) {
       if (ringType == RingType::RingLeft) {
         int rowBreakRight = 0; // 右边缘横坐标连续性(行号)
-        //cout << rowBreakRight << " ";
         for (int i = 0; i < track.pointsEdgeRight.size(); i += 3) {
           if (track.pointsEdgeRight[i].y <=
               track.pointsEdgeRight[rowBreakRight].y) {
-            rowBreakRight = i;
+            rowBreakRight = i;  //找到右边点最小列
             continue;
           }
           if (i > rowBreakRight &&
@@ -366,7 +390,6 @@ public:
             break; // 寻找到出环口：出环补线
           }
         }
-        
         track.pointsEdgeLeft.resize(0); // 单边控制
         int acute_angle_flag = 0;
         if (!track.pointsEdgeRight.empty() &&
@@ -393,19 +416,19 @@ public:
           }
 
           if (slopeButtom * slopeTop <= 0) {
-            rowBreakpointLeft = track.pointsEdgeRight[track.validRowsLeft].x;
-            POINT p_end(rowBreakpointLeft, 0); // 补线终点为左边有效行顶点
-            POINT p_mid(
+              rowBreakpointLeft = track.pointsEdgeRight[track.validRowsLeft].x;
+              POINT p_end(rowBreakpointLeft, 0); // 补线终点为左边有效行顶点
+              POINT p_mid(
                 (track.pointsEdgeRight[rowBreakRight].x + rowBreakpointLeft) *
                     3 / 8,
                 track.pointsEdgeRight[rowBreakRight].y / 2);
-            vector<POINT> input = {track.pointsEdgeRight[rowBreakRight], p_mid,
+              vector<POINT> input = {track.pointsEdgeRight[rowBreakRight], p_mid,
                                    p_end};
-            vector<POINT> b_modify = Bezier(0.01, input);
-            track.pointsEdgeRight.resize(rowBreakRight);
-            for (int kk = 0; kk < b_modify.size(); ++kk) {
-              track.pointsEdgeRight.emplace_back(b_modify[kk]);
-            }
+              vector<POINT> b_modify = Bezier(0.01, input);
+              track.pointsEdgeRight.resize(rowBreakRight);
+              for (int kk = 0; kk < b_modify.size(); ++kk) {
+                track.pointsEdgeRight.emplace_back(b_modify[kk]);
+              }
           }
         } else if (track.pointsEdgeRight.size() - rowBreakRight <= 20) {
           _index = 2;
@@ -419,9 +442,79 @@ public:
             track.pointsEdgeRight.emplace_back(b_modify[kk]);
           }
         }
-      } else {
-        ;
+      } else {   //右出环
+          int rowBreakLeft = 0; // 左边缘横坐标连续性(行号)
+          for (int i = 0; i < track.pointsEdgeLeft.size(); i += 3) {
+              if (track.pointsEdgeLeft[i].y <=
+                  track.pointsEdgeLeft[rowBreakLeft].y) {
+                  rowBreakLeft = i;  //找到zuo边点最小列
+                  continue;
+              }
+              if (i > rowBreakLeft &&
+                  track.pointsEdgeLeft[rowBreakLeft].y -
+                  track.pointsEdgeLeft[i].y >
+                  5) {
+                  break; // 寻找到出环口：出环补线
+              }
+          }
+          track.pointsEdgeRight.resize(0); // 单边控制
+          int acute_angle_flag = 0;
+
+          if (!track.pointsEdgeLeft.empty() &&
+              track.pointsEdgeLeft[rowBreakLeft].y > (COLSIMAGE * 3) / 4) {
+              track.pointsEdgeLeft.resize(rowBreakLeft); // 前80列不需要补线
+          } else if (track.pointsEdgeLeft.size() - rowBreakLeft > 20) {
+              float slopeTop = 0;    // 斜率：分歧点上半部分
+              float slopeButtom = 0; // 斜率：分歧点下半部分
+              if (track.pointsEdgeLeft[rowBreakLeft].x !=
+                  track.pointsEdgeLeft[0].x) {
+                  slopeButtom = (track.pointsEdgeLeft[rowBreakLeft].y -
+                                 track.pointsEdgeLeft[0].y) *
+                                100 /
+                                (track.pointsEdgeLeft[rowBreakLeft].x -
+                                 track.pointsEdgeLeft[0].x);
+              }
+              if (track.pointsEdgeLeft[rowBreakLeft].x !=
+                  track.pointsEdgeLeft[rowBreakLeft + 20].x) {
+                  slopeTop = (track.pointsEdgeLeft[rowBreakLeft + 20].y -
+                              track.pointsEdgeLeft[rowBreakLeft].y) *
+                             100 /
+                             (track.pointsEdgeLeft[rowBreakLeft + 20].x -
+                              track.pointsEdgeLeft[rowBreakLeft].x);
+              }
+
+              if (slopeButtom * slopeTop >= 0) {
+              cout << rowBreakpointRight << " ";
+                  POINT p_end(rowBreakpointRight, COLSIMAGE); // 补线终点为右边有效行顶点
+                  POINT p_mid(
+                          (track.pointsEdgeLeft[rowBreakLeft].x + rowBreakpointRight) *
+                          3 / 8,
+                          track.pointsEdgeLeft[rowBreakLeft].y / 2);
+                  vector<POINT> input = {track.pointsEdgeLeft[rowBreakLeft], p_mid,
+                                         p_end};
+                  vector<POINT> b_modify = Bezier(0.01, input);
+                  track.pointsEdgeLeft.resize(rowBreakLeft);
+                  for (int kk = 0; kk < b_modify.size(); ++kk) {
+                      track.pointsEdgeLeft.emplace_back(b_modify[kk]);
+                  }
+                  cout << 1;
+              }
+          } else if (track.pointsEdgeLeft.size() - rowBreakLeft <= 20) {
+              _index = 2;
+              POINT p_end(rowBreakpointRight, COLSIMAGE);
+              POINT p_start(max(rowBreakpointRight, ROWSIMAGE - 80), 0);
+              POINT p_mid((ROWSIMAGE - 50 + rowBreakpointRight) / 4, COLSIMAGE / 2);
+              vector<POINT> input = {p_start, p_mid, p_end};
+              vector<POINT> b_modify = Bezier(0.01, input);
+              track.pointsEdgeLeft.resize(0);
+              for (int kk = 0; kk < b_modify.size(); ++kk) {
+                  track.pointsEdgeLeft.emplace_back(b_modify[kk]);
+              }
+              cout << 2;
+          }
       }
+
+
       if (max(rowBreakpointLeft, rowBreakpointRight) < ROWSIMAGE / 2) {
         ringStep = RingStep::Exiting;
       }
@@ -443,61 +536,76 @@ public:
         if (rowBreakpointRight > ROWSIMAGE / 2) {
           ringStep = RingStep::Finish;
         }
+      } else if (ringType == RingType::RingRight && rowBreakpointRight < ROWSIMAGE / 2) {
+          POINT p_end(rowBreakpointRight, COLSIMAGE);
+          POINT p_start(ROWSIMAGE - 50, 1);
+          POINT p_mid((ROWSIMAGE - 50 + rowBreakpointRight) * 3 / 8,
+                      COLSIMAGE / 2);
+          vector<POINT> input = {p_start, p_mid, p_end};
+          vector<POINT> b_modify = Bezier(0.01, input);
+          track.pointsEdgeRight.resize(0);
+          track.pointsEdgeLeft.resize(0);
+          for (int kk = 0; kk < b_modify.size(); ++kk) {
+              track.pointsEdgeLeft.emplace_back(b_modify[kk]);
+          }
+          if (rowBreakpointLeft > ROWSIMAGE / 2) {
+              ringStep = RingStep::Finish;
+          }
       }
     }
 
-    // //清掉边界的edge点
-    vector<POINT> v_temp, v_temp2;
-    for (int jj = 0; jj < track.pointsEdgeLeft.size(); ++jj)
-    {
-        if (track.pointsEdgeLeft[jj].y > 2)
-        {
-            v_temp.push_back(track.pointsEdgeLeft[jj]);
-        }
-        else
-        {
-            if (jj > track.pointsEdgeLeft.size() * 9 / 10)
-            {
-                break;
-            }
-        }
-
-        if (track.pointsEdgeLeft[jj].y > COLSIMAGE * 9 / 10 && jj <
-        track.pointsEdgeLeft.size() - 5)
-        {
-            break;
-        }
-    }
-    track.pointsEdgeLeft = v_temp;
-    if (track.pointsEdgeLeft.size() < 5)
-    {
-        track.pointsEdgeLeft.resize(0);
-    }
-
-    for (int jj = 0; jj < track.pointsEdgeRight.size(); ++jj)
-    {
-        if (track.pointsEdgeRight[jj].y < COLSIMAGE - 3)
-        {
-            v_temp2.push_back(track.pointsEdgeRight[jj]);
-        }
-        else
-        {
-            if (jj > track.pointsEdgeRight.size() * 9 / 10)
-            {
-                break;
-            }
-        }
-        if (track.pointsEdgeRight[jj].y < COLSIMAGE / 10 && jj <
-        track.pointsEdgeRight.size() - 5)
-        {
-            break;
-        }
-    }
-    track.pointsEdgeRight = v_temp2;
-    if (track.pointsEdgeRight.size() < 5)
-    {
-        track.pointsEdgeRight.resize(0);
-    }
+//     //清掉边界的edge点
+//     vector<POINT> v_temp, v_temp2;
+//     for (int jj = 0; jj < track.pointsEdgeLeft.size(); ++jj)
+//     {
+//         if (track.pointsEdgeLeft[jj].y > 2)
+//         {
+//             v_temp.push_back(track.pointsEdgeLeft[jj]);
+//         }
+//         else
+//         {
+//             if (jj > track.pointsEdgeLeft.size() * 9 / 10)
+//             {
+//                 break;
+//             }
+//         }
+//
+//         if (track.pointsEdgeLeft[jj].y > COLSIMAGE * 9 / 10 && jj <
+//         track.pointsEdgeLeft.size() - 5)
+//         {
+//             break;
+//         }
+//     }
+//     track.pointsEdgeLeft = v_temp;
+//     if (track.pointsEdgeLeft.size() < 5)
+//     {
+//         track.pointsEdgeLeft.resize(0);
+//     }
+//
+//     for (int jj = 0; jj < track.pointsEdgeRight.size(); ++jj)
+//     {
+//         if (track.pointsEdgeRight[jj].y < COLSIMAGE - 3)
+//         {
+//             v_temp2.push_back(track.pointsEdgeRight[jj]);
+//         }
+//         else
+//         {
+//             if (jj > track.pointsEdgeRight.size() * 9 / 10)
+//             {
+//                 break;
+//             }
+//         }
+//         if (track.pointsEdgeRight[jj].y < COLSIMAGE / 10 && jj <
+//         track.pointsEdgeRight.size() - 5)
+//         {
+//             break;
+//         }
+//     }
+//     track.pointsEdgeRight = v_temp2;
+//     if (track.pointsEdgeRight.size() < 5)
+//     {
+//         track.pointsEdgeRight.resize(0);
+//     }
 
     // 出环，切回正常循迹
     if (ringStep == RingStep::Finish) {
@@ -525,6 +633,7 @@ public:
       return false;
     else
       return true;
+
   }
 
   /**
@@ -612,3 +721,4 @@ private:
   int rowRepairLine = 0;                  // 用于环补线的点（行号）
   int colRepairLine = 0;                  // 用于环补线的点（列号）
 };
+
