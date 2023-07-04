@@ -125,16 +125,20 @@ public:
     // 判环
     int countWide = 0; // 环岛入口变宽区域行数
     for (int i = 1; i < track.widthBlock.size(); ++i) {
+        //cout << i << " " << track.widthBlock[i].x << " " << track.widthBlock[i].y << endl;
       if (track.widthBlock[i].y > track.widthBlock[i - 1].y &&
           track.widthBlock[i].y > COLSIMAGE * 0.6 &&
           track.widthBlock[i].x > 30 &&
-          ((track.stdevLeft > 120 && track.stdevRight < 50) || // 120    50
+          ((track.stdevLeft > 180 && track.stdevRight < 35) || // 120    50
            ringStep == RingStep::Entering)) // 搜索突然变宽的路径行数
                                             // stdevLeft左斜率  斜率应该要调小
       {
         ++countWide;
+        // cout << track.stdevLeft << " " << track.stdevRight << endl;
+        //cout << i << " " << track.widthBlock[i].x << " " << track.widthBlock[i].y << endl;
       } 
-      else {
+      else 
+      {
         countWide = 0;
       }
       // [1] 入环判断
@@ -212,6 +216,7 @@ public:
             POINT midPoint(x, y);                             // 补线：中点
             POINT endPoint(rowYendStraightside, 0);           // 补线：终点
 
+            
             vector<POINT> input = {startPoint, midPoint, endPoint};
             vector<POINT> b_modify = Bezier(0.01, input);
             track.pointsEdgeLeft.resize(rowRepairRingside);
@@ -219,6 +224,8 @@ public:
             for (int kk = 0; kk < b_modify.size(); ++kk) {
               track.pointsEdgeRight.emplace_back(b_modify[kk]);
             }
+             //cout << startPoint.x << " " << startPoint.y << endl;
+             //cout << endPoint.x << " " << endPoint.y << endl;
             break;
           }
         }
@@ -333,15 +340,19 @@ public:
         }
       }
     }
+    cout<<counterSpurroad<<' ';
     // 环中
     if (ringStep == RingStep::Entering && track.spurroad.empty() &&
         counterSpurroad >= 3) {
       ringStep = RingStep::Inside;
+      // cout << counterSpurroad<<' ';
+      //cout << 1;
     }
     // 出环补线
     if (ringStep == RingStep::Inside) {
       if (ringType == RingType::RingLeft) {
         int rowBreakRight = 0; // 右边缘横坐标连续性(行号)
+        //cout << rowBreakRight << " ";
         for (int i = 0; i < track.pointsEdgeRight.size(); i += 3) {
           if (track.pointsEdgeRight[i].y <=
               track.pointsEdgeRight[rowBreakRight].y) {
@@ -355,6 +366,7 @@ public:
             break; // 寻找到出环口：出环补线
           }
         }
+        
         track.pointsEdgeLeft.resize(0); // 单边控制
         int acute_angle_flag = 0;
         if (!track.pointsEdgeRight.empty() &&

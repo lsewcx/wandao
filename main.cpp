@@ -1,5 +1,6 @@
 /**
- * @note 此文件为主函数在此调用 如要返回图像值void 改Mat即可
+ * @file main.cpp
+ * @note 此文件为主函数在此调用 如要返回图像值 void 改Mat即可
  * @author lse
  */
 
@@ -86,17 +87,28 @@ void video(RoadType roadType)
     {
         cv::Mat frame;
         cap.read(frame);
+
+
+
+        // std::shared_ptr<DetectionResult> resultAI =
+        // detection->getLastFrame();   // 获取Paddle多线程模型预测数据
+        // Mat frame = resultAI->rgb_frame; // 获取原始摄像头图像
+
+
         cv::Mat frame1= binarization.imageBinaryzation(frame);
         cv::Mat frame2= path1.pathSearch(frame1);
         cv::Mat frame3=binarization.imageBinaryzation(frame2);
         cv::imshow("image123",frame3);
+
+        trackRecognition.trackRecognition(frame3); // 赛道线识别
+        trackRecognition.drawImage(frame); // 图像显示赛道线识别结果
 
 
         // [11] 环岛识别与处理
         if (roadType == RoadType::RingHandle ||
           roadType == RoadType::BaseHandle)
         {
-            if (ringRecognition.ringRecognition(trackRecognition,frame3))
+            if (ringRecognition.ringRecognition(trackRecognition,frame1))
             {
                 roadType = RoadType::RingHandle;
             
@@ -109,8 +121,31 @@ void video(RoadType roadType)
             roadType = RoadType::BaseHandle;
         }
 
-        trackRecognition.trackRecognition(frame3); // 赛道线识别
-        trackRecognition.drawImage(frame); // 图像显示赛道线识别结果
+        //[05] 农田区域检测
+    if (motionController.params.FarmlandEnable) // 赛道元素是否使能
+    {
+      if (roadType == RoadType::FarmlandHandle ||
+          roadType == RoadType::BaseHandle)
+      {
+        if (farmlandDetection.farmlandDetection(trackRecognition,
+                                                resultAI->predictor_results))
+        {
+          roadType = RoadType::FarmlandHandle;
+          if (motionController.params.debug)
+          {
+            Mat imageFarmland =
+                Mat::zeros(Size(COLSIMAGE, ROWSIMAGE), CV_8UC3); // 初始化图像
+            farmlandDetection.drawImage(trackRecognition, imageFarmland);
+            imshow("imageRecognition", imageFarmland);
+            imshowRec = true;
+            savePicture(imageFarmland);
+          }
+        }
+        else
+          roadType = RoadType::BaseHandle;
+      }
+    }
+
         controlCenterCal.controlCenterCal(trackRecognition); // 根据赛道边缘信息拟合运动控制中心
         controlCenterCal.drawImage(trackRecognition, frame);
         switch (roadType)
@@ -122,13 +157,18 @@ void video(RoadType roadType)
                 break;
             case RoadType::RingHandle: // 环岛赛道处理 // 环岛赛道处理
                 putText(frame, "[2] Ring", Point(10, 20),
-                        cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 255, 0), 1,
+                        cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 255, 0), 1,        
                         CV_AA); // 显示赛道识别类型
+                break;
+            case RoadType::FarmlandHandle: // 农田区域处理 // 坡道处理
+                putText(imgaeCorrect, "[10] Farmland", Point(10, 20),
+                    cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 255, 0), 1,
+                    CV_AA); // 显示赛道识别类型
                 break;
         }
         imshow("imageTrack", frame);
 
-        char key = waitKey(40);//读取视频修改waitkey里面的参数可以修改图片播放的速度
+        char key = waitKey(30);//读取视频修改waitkey里面的参数可以修改图片播放的速度
         if (key == 27)
         {
             break;
@@ -142,6 +182,7 @@ int main()
     RoadType roadType = RoadType::BaseHandle; 
     picturepath = "H:/opencvdaima/wandao/1812.jpg"; // 图片路径
     videopath = "H:/opencvdaima/wandao/sample.mp4"; // 视频路径
+    // videopath = "C:/Users/lsewcx/Desktop/新项目.mp4"; // 视频路径
 
 
     // 透视变换的部分
@@ -156,19 +197,34 @@ int main()
     //     ipm.init(Size(320, 240),
     //              Size(320, 400), flag,videopath);
     // }
+
+
     // video(roadType);
-    string jsonPath="H:/opencvdaima/wandao/motion.json";
-    std::ifstream config_is(jsonPath);
-    json js_value;
-    config_is >> js_value;
-    params = js_value.get<Params>();
-    cout<<params.flag;
-    try
-    {
-        video(roadType);
-    }
-    catch(MyException& e)
-    {
-        std::cout << e.what() << std::endl;
-    }
+
+
+
+    //读取json文件方法
+    // string jsonPath="H:/opencvdaima/wandao/motion.json";
+    // std::ifstream config_is(jsonPath);
+    // json js_value;
+    // config_is >> js_value;
+    // params = js_value.get<Params>();
+    // cout<<params.flag;
+
+    //异常抛出
+    // try
+    // {
+    //     video(roadType);
+    // }
+    // catch(MyException& e)
+    // {
+    //     std::cout << e.what() << std::endl;
+    // }
+
+
+
+
+            // 图像处理 正常帧率
+    // imgprocess.process(frame_origin, frame_imgpro, payload);
+    // ret = 1;
 }

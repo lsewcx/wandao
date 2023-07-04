@@ -89,8 +89,15 @@ public:
                 cv::Mat fram2 = binarization.imageBinaryzation(frame);
                 cv::Mat fram3 = path1.pathSearch(fram2);
                 cv::Mat fram4=binarization.imageBinaryzation(fram3);
+
+
+                trackRecognition.trackRecognition(fram4); // 赛道线识别
+                trackRecognition.drawImage(frame); // 图像显示赛道线识别结果
+                controlCenterCal.controlCenterCal(trackRecognition); // 根据赛道边缘信息拟合运动控制中心
+                controlCenterCal.drawImage(trackRecognition, frame);
+                cv::imshow("image123412",fram3);
                 // 二值化
-                 cv::imshow("路径搜索", fram4);
+                cv::imshow("路径搜索", frame);
 
                 // cv::imshow("二值化图像", fram1);
 
@@ -107,7 +114,7 @@ public:
 
 
 
-                char key = waitKey(10);//读取视频
+                char key = waitKey(40);//读取视频
                 if (key == 27)
                 {
                     break;
