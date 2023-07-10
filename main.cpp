@@ -14,7 +14,10 @@
 #include "use.cpp"
 #include <exception>
 #include "json.hpp"
-#include "yyds.hpp"
+// #include "yyds.hpp"
+#include "cross_recognition.cpp" //十字道路识别与路径规划类
+#include <ctime>
+#include <thread>
 // #include "imgprocess.cpp"
 
 struct Params
@@ -44,16 +47,17 @@ struct Params
     bool DepotEnable = true;    // 修车厂使能
     bool FarmlandEnable = true; // 农田使能
     bool SlowzoneEnable = true; // 慢行区使能
-    bool flag = false;
+    bool flag1 = false;
     uint16_t circles = 2;                           // 智能车运行圈数
     string pathVideo = "../res/samples/sample.mp4"; // 视频路径
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Params, flag, speedLow, speedHigh, speedDown, speedBridge, speedSlowzone, speedGarage,
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Params, flag1, speedLow, speedHigh, speedDown, speedBridge, speedSlowzone, speedGarage,
                                    runP1, runP2, runP3, turnP, turnD, debug, saveImage, rowCutUp, rowCutBottom, disGarageEntry,
                                    GarageEnable, BridgeEnable, FreezoneEnable, RingEnable, CrossEnable, GranaryEnable, DepotEnable, FarmlandEnable, SlowzoneEnable, circles, pathVideo); // 添加构造函数
 };
 
 PerspectiveMapping ipm;
 Params params;
+CrossroadRecognition crossroadRecognition;
 // image imgprocess;  // 图像处理
 
 using namespace std;
@@ -67,6 +71,8 @@ cv::Mat serchpicture;
 cv::Mat _dstImg;
 cv::Mat frame;
 cv::Mat fram1;
+int num = 0;
+RoadType roadtemptype = RoadType::CrossHandle;
 
 struct MyException : public exception
 {
@@ -75,6 +81,12 @@ struct MyException : public exception
         return "error";
     }
 };
+
+// void mythread()
+// {
+//     cap.read(frame);
+//     cv::Mat frame1 = binarization.imageBinaryzation(frame);
+// }
 
 void video(RoadType roadType)
 {
@@ -86,12 +98,31 @@ void video(RoadType roadType)
     {
         cv::Mat frame;
         cap.read(frame);
+        cv::Mat frame1 = binarization.imageBinaryzation(frame);
+
+        // Mat gray;
+        // cvtColor(frame, gray, COLOR_BGR2GRAY);
+        // GaussianBlur(gray, gray, Size(5, 5), 0);
+
+        // // 圆检测
+        // std::vector<Vec3f> circles;
+        // HoughCircles(gray, circles, HOUGH_GRADIENT, 1, gray.rows / 8, 100, 30, 0, 0);
+
+        // // 绘制检测到的圆
+        // for (size_t i = 0; i < circles.size(); i++)
+        // {
+        //     Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+        //     int radius = cvRound(circles[i][2]);
+        //     circle(frame, center, radius, Scalar(0, 255, 0), 2);
+        // }
+
+        // // 显示结果
+        // imshow("Circle Detection", frame);
 
         // std::shared_ptr<DetectionResult> resultAI =
         // detection->getLastFrame();   // 获取Paddle多线程模型预测数据
         // Mat frame = resultAI->rgb_frame; // 获取原始摄像头图像
 
-        cv::Mat frame1 = binarization.imageBinaryzation(frame);
         // cv::Mat frame2= path1.pathSearch(frame1);
         // cv::Mat frame3=binarization.imageBinaryzation(frame2);
         cv::imshow("image123", frame1);
@@ -99,7 +130,6 @@ void video(RoadType roadType)
         trackRecognition.trackRecognition(frame1); // 赛道线识别
         trackRecognition.drawImage(frame);         // 图像显示赛道线识别结果
 
-        
         // imgprocess.process(frame, frame_imgpro);
         // imshow("imag123", frame_imgpro);
 
@@ -110,7 +140,6 @@ void video(RoadType roadType)
             if (ringRecognition.ringRecognition(trackRecognition, frame1))
             {
                 roadType = RoadType::RingHandle;
-
                 Mat imageRing =
                     Mat::zeros(Size(COLSIMAGE, ROWSIMAGE), CV_8UC3); // 初始化图像
                 ringRecognition.drawImage(trackRecognition, imageRing);
@@ -119,6 +148,22 @@ void video(RoadType roadType)
             else
                 roadType = RoadType::BaseHandle;
         }
+        // [12] 十字道路处理
+
+        // if (roadType == RoadType::CrossHandle || roadType == RoadType::BaseHandle)
+        // {
+        //     if (crossroadRecognition.crossroadRecognition(
+        //             trackRecognition))
+        //     {
+        //         roadType = RoadType::CrossHandle;
+        //         Mat imageCross =
+        //             Mat::zeros(Size(COLSIMAGE, ROWSIMAGE), CV_8UC3); // 初始化图像
+        //         crossroadRecognition.drawImage(trackRecognition, imageCross);
+        //         imshow("imageRecognition", imageCross);
+        //     }
+        //     else
+        //         roadType = RoadType::BaseHandle;
+        // }
 
         //[05] 农田区域检测
         // if (motionController.params.FarmlandEnable) // 赛道元素是否使能
@@ -159,6 +204,11 @@ void video(RoadType roadType)
                     cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 255, 0), 1,
                     CV_AA); // 显示赛道识别类型
             break;
+        case RoadType::CrossHandle: // 十字道路处理 // 十字道路处理
+            putText(frame, "[3] Cross", Point(10, 20),
+                    cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 255, 0), 1,
+                    CV_AA); // 显示赛道识别类型
+            break;
             // case RoadType::FarmlandHandle: // 农田区域处理 // 坡道处理
             //     putText(imgaeCorrect, "[10] Farmland", Point(10, 20),
             //         cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 255, 0), 1,
@@ -167,7 +217,7 @@ void video(RoadType roadType)
         }
         imshow("imageTrack", frame);
 
-        char key = waitKey(30); // 读取视频修改waitkey里面的参数可以修改图片播放的速度
+        char key = waitKey(20); // 读取视频修改waitkey里面的参数可以修改图片播放的速度
         if (key == 27)
         {
             break;
@@ -178,33 +228,35 @@ void video(RoadType roadType)
 int main()
 {
     RoadType roadType = RoadType::BaseHandle;
-    picturepath = "H:/opencvdaima/wandao/1812.jpg"; // 图片路径
-    // videopath = "H:/opencvdaima/wandao/sample.mp4"; // 视频路径
+    picturepath = "H:/opencvdaima/wandao/1812.jpg";     // 图片路径
+    videopath = "H:/opencvdaima/wandao/sample.mp4"; // 视频路径
     // videopath = "C:/Users/lsewcx/Desktop/新项目.mp4"; // 视频路径
-    videopath = "C:/Users/lsewcx/Desktop/sample .mp4"; //
+    // videopath = "C:/Users/lsewcx/Desktop/sample .mp4"; //
 
-    // 透视变换的部分
-    // bool flag = false; // false跑视频  true跑照片 启用视频时需要关闭照片才能运行哦
-    // if (flag == true)
-    // {
-    //     ipm.init(Size(320, 240),
-    //              Size(320, 400), flag, picturepath);
-    // }
-    // else
-    // {
-    //     ipm.init(Size(320, 240),
-    //              Size(320, 400), flag,videopath);
-    // }
-
-    video(roadType);
+    // video(roadType);
 
     // 读取json文件方法
-    //  string jsonPath="H:/opencvdaima/wandao/motion.json";
+    //  string jsonPath="H:/opencvdaima/wandao/123/motion.json";
     //  std::ifstream config_is(jsonPath);
     //  json js_value;
     //  config_is >> js_value;
     //  params = js_value.get<Params>();
-    //  cout<<params.flag;
+
+    
+
+     // 透视变换的部分
+    bool flag = false; // false跑视频  true跑照片 启用视频时需要关闭照片才能运行哦
+    if (flag == true)
+    {
+        ipm.init(Size(320, 240),
+                 Size(320, 400), flag, picturepath);
+    }
+    else
+    {
+        ipm.init(Size(320, 240),
+                 Size(320, 400), flag,videopath);
+    }
+
 
     // 异常抛出
     //  try

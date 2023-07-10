@@ -56,7 +56,8 @@
     "iomanip": "cpp",
     "mutex": "cpp",
     "thread": "cpp",
-    "valarray": "cpp"
+    "valarray": "cpp",
+    "csignal": "cpp"
   },
   "C_Cpp_Runner.msvcBatchPath": "",
   "C_Cpp_Runner.cCompilerPath": "gcc",

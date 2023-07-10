@@ -68,7 +68,7 @@ public:
             homography(src_tupian,_dstImg);
             // cv::Mat dst;
             // homographyInv(_dstImg, dst, cv::INTER_LINEAR);
-            // cv::imshow("img1", _dstImg); // 展示图片  建议调试用   比赛时候不用
+            cv::imshow("img1", _dstImg); // 展示图片  建议调试用   比赛时候不用
         }
         else
         {
@@ -77,27 +77,29 @@ public:
             while (cap.isOpened())
             {
                 cv::Mat frame;
+                cv::Mat frmae123;
                 cap.read(frame);
                 // cv::imshow("原始图像", frame);
                 homography(frame, _dstImg);
+                // homographyInv(_dstImg,frmae123, BORDER_CONSTANT);
                 // drawBorder(m_dstPoints,_dstImg);
                 cv::imshow("透视变换图像", _dstImg);
-                cv::Mat fram1 = binarization.imageBinaryzation(_dstImg);
+                cv::Mat fram1 = binarization.imageBinaryzation(frame);
 
 
 
-                cv::Mat fram2 = binarization.imageBinaryzation(frame);
-                cv::Mat fram3 = path1.pathSearch(fram2);
-                cv::Mat fram4=binarization.imageBinaryzation(fram3);
+                // cv::Mat fram2 = binarization.imageBinaryzation(frame);
+                // cv::Mat fram3 = path1.pathSearch(fram2);
+                // cv::Mat fram4=binarization.imageBinaryzation(fram3);
 
 
-                trackRecognition.trackRecognition(fram4); // 赛道线识别
+                trackRecognition.trackRecognition(fram1); // 赛道线识别
                 trackRecognition.drawImage(frame); // 图像显示赛道线识别结果
                 controlCenterCal.controlCenterCal(trackRecognition); // 根据赛道边缘信息拟合运动控制中心
                 controlCenterCal.drawImage(trackRecognition, frame);
-                cv::imshow("image123412",fram3);
+                cv::imshow("image123412",fram1);
                 // 二值化
-                cv::imshow("路径搜索", frame);
+                // cv::imshow("路径搜索", frame);
 
                 // cv::imshow("二值化图像", fram1);
 
@@ -114,7 +116,7 @@ public:
 
 
 
-                char key = waitKey(40);//读取视频
+                char key = waitKey(30);//读取视频
                 if (key == 27)
                 {
                     break;
