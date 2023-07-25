@@ -186,8 +186,8 @@ cv::Mat enhanceExposure(const cv::Mat &inputImage, double gamma)
     return outputImage;
 }
 
-
-void illuminationChange(cv::Mat& image) {
+void illuminationChange(cv::Mat &image)
+{
     // 将图像转换为Lab颜色空间
     cv::Mat labImage;
     cv::cvtColor(image, labImage, cv::COLOR_BGR2Lab);
@@ -206,10 +206,14 @@ void illuminationChange(cv::Mat& image) {
     cv::cvtColor(labImage, image, cv::COLOR_Lab2BGR);
 }
 
-
-
-
-
+float lightGray(cv::Mat img)
+{
+    cv::Mat imgGray;
+    cv::cvtColor(img, imgGray, CV_BGR2GRAY);
+    cv::Scalar grayScalar = cv::mean(imgGray);
+    float imgGrayLight = grayScalar.val[0];
+    return imgGrayLight;
+}
 
 uint16_t circlesThis = 1;    // 智能车当前运行的圈数
 uint16_t countercircles = 0; // 圈数计数器
@@ -226,6 +230,8 @@ void video(RoadType roadType)
         cv::Mat frame123;
         cv::Mat frame1234;
         cap.read(frame);
+        float picLight = lightGray(frame);
+        cout << picLight << endl; // 亮度值 可以实测效果写一个自适应的强光消除的 linght1的值在一定范围内进行变化
         int light1 = -50;
         cv::Mat fm = frame.clone();
         cv::Mat result1 = HighLight(frame, light1);
@@ -315,13 +321,12 @@ void video(RoadType roadType)
         cv::Mat frame_imgpro;
         trackRecognition.trackRecognition(frame12345); // 赛道线识别
         // cv::imshow("2131313",frame12345);
-        trackRecognition.drawImage(frame);             // 图像显示赛道线识别结果
+        trackRecognition.drawImage(frame); // 图像显示赛道线识别结果
 
         if (roadType == RoadType::GarageHandle ||
             roadType == RoadType::BaseHandle)
         {
             countercircles++; // 圈数计数
-            cout << countercircles << ' ';
             if (countercircles > 200)
                 countercircles = 200;
         }
@@ -353,7 +358,6 @@ void video(RoadType roadType)
                 crosscounter = true;
                 timer.reset();
                 timer.start();
-                cout << 2;
                 Mat imageCross =
                     Mat::zeros(Size(COLSIMAGE, ROWSIMAGE), CV_8UC3); // 初始化图像
                 crossroadRecognition.drawImage(trackRecognition, imageCross);
@@ -362,7 +366,6 @@ void video(RoadType roadType)
             else
                 roadType = RoadType::BaseHandle;
         }
-
 
         controlCenterCal.controlCenterCal(trackRecognition); // 根据赛道边缘信息拟合运动控制中心
         controlCenterCal.drawImage(trackRecognition, frame);
@@ -435,7 +438,6 @@ int main()
         std::cout << e.what() << std::endl;
     }
 }
-
 
 // 图像高光选取
 cv::Mat HighLight(cv::Mat input, int light)
