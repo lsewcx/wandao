@@ -206,18 +206,10 @@ void illuminationChange(cv::Mat &image)
     cv::cvtColor(labImage, image, cv::COLOR_Lab2BGR);
 }
 
-float lightGray(cv::Mat img)
-{
-    cv::Mat imgGray;
-    cv::cvtColor(img, imgGray, CV_BGR2GRAY);
-    cv::Scalar grayScalar = cv::mean(imgGray);
-    float imgGrayLight = grayScalar.val[0];
-    return imgGrayLight;
-}
-
 uint16_t circlesThis = 1;    // 智能车当前运行的圈数
 uint16_t countercircles = 0; // 圈数计数器
-
+double totalBrightness = 0;
+int frameCount = 0;
 void video(RoadType roadType)
 {
     VideoCapture cap;
@@ -230,8 +222,16 @@ void video(RoadType roadType)
         cv::Mat frame123;
         cv::Mat frame1234;
         cap.read(frame);
-        float picLight = lightGray(frame);
-        cout << picLight << endl; // 亮度值 可以实测效果写一个自适应的强光消除的 linght1的值在一定范围内进行变化
+        cv::Mat gray;
+        cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+        double frameBrightness = cv::mean(gray)[0];
+
+        // 累加亮度值
+        totalBrightness += frameBrightness;
+        frameCount++;
+
+        // 显示当前帧亮度
+        std::cout << "Frame " << frameCount << " brightness: " << frameBrightness << std::endl;
         int light1 = -50;
         cv::Mat fm = frame.clone();
         cv::Mat result1 = HighLight(frame, light1);
@@ -395,6 +395,9 @@ void video(RoadType roadType)
             break;
         }
     }
+    double averageBrightness = totalBrightness / frameCount;
+
+    std::cout << "Average brightness: " << averageBrightness << std::endl;
 }
 
 int main()
