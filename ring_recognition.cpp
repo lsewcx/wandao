@@ -390,6 +390,7 @@ public:
             for (int kk = 0; kk < b_modify.size(); ++kk) {
               track.pointsEdgeRight.emplace_back(b_modify[kk]);
             }
+            cout << 1;
           }
         } else if (track.pointsEdgeRight.size() - rowBreakRight <= 20) {
           _index = 2;
@@ -402,6 +403,7 @@ public:
           for (int kk = 0; kk < b_modify.size(); ++kk) {
             track.pointsEdgeRight.emplace_back(b_modify[kk]);
           }
+          cout << 2;
         }
       } else {
         ;
@@ -424,6 +426,7 @@ public:
         for (int kk = 0; kk < b_modify.size(); ++kk) {
           track.pointsEdgeRight.emplace_back(b_modify[kk]);
         }
+        cout << 3;
         if (rowBreakpointRight > ROWSIMAGE / 2) {
           ringStep = RingStep::Finish;
         }
@@ -491,6 +494,7 @@ public:
               track.pointsEdgeRight.size() / 3) &&
           track.spurroad.empty()) {
         ringStep = RingStep::None;
+        cout << 4;
       }
     }
 

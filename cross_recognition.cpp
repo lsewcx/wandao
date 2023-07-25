@@ -1,3 +1,4 @@
+#pragma once
 /**
  ********************************************************************************************************
  *                                               示例代码
@@ -46,7 +47,6 @@ public:
     void reset(void)
     {
         crossroadType = CrossroadType::None; // 十字道路类型
-        crossStep = CrossroadStep::stepNone;
     }
 
     /**
@@ -72,115 +72,166 @@ public:
             return false;
 
         _index = 1;
+        //----------------------------------------------------------------------------------------------------
 
-        // 通过色块突变-搜索十字类型
-        uint16_t counterStrightA = 0; // 计数器
-        uint16_t counterStrightB = 0; // 计数器
-        if (crossStep == CrossroadStep::stepNone)
+        //[01] 左入十字处理
+        if (track.stdevRight > 50)
         {
+            // 通过色块突变-搜索十字类型
             for (int i = 2; i < track.widthBlock.size() - 10; i++)
             {
-                if (searchStraightCrossroad(track.pointsEdgeLeft, track.pointsEdgeRight))
+                // 左入十字判断
+                if (track.pointsEdgeLeft[i].y < 2 && track.widthBlock[i].y > track.widthBlock[i - 2].y)
+                    counterRec++;
+                if (counterRec)
+                {
+                    counterLinear++;
+                    if (counterLinear > 8)
+                    {
+                        counterLinear = 0;
+                        counterRec = 0;
+                    }
+                    if (counterRec > 5)
+                    {
+                        crossroadType = CrossroadType::CrossroadLeft; // 左入十字
+                        _index = 2;
+                        break;
+                    }
+                }
+            }
+        }
+
+        counterRec = 0;
+        if (crossroadType == CrossroadType::CrossroadLeft) // 左入十字
+        {
+            uint16_t rowBreakRightDown = searchBreakRightDown(track.pointsEdgeRight); // 搜索十字赛道突变行（右下）
+
+            if (rowBreakRightDown > 0 && track.pointsEdgeRight[rowBreakRightDown].y > 20)
+            {
+                pointBreakRD = track.pointsEdgeRight[rowBreakRightDown]; // 右下突变点
+                if (track.spurroad.size() > 0)                           //[Step-1] 搜索到岔路
+                {
+                    int indexSP = 0;
+
+                    for (int i = 0; i < track.spurroad.size(); i++) // 若存在多个岔路点：搜索最优点
+                    {
+                        if (pointBreakRD.y > track.spurroad[i].y && pointBreakRD.x > track.spurroad[i].x)
+                        {
+                            indexSP = i;
+                            break;
+                        }
+                    }
+                    for (int i = 0; i < track.spurroad.size(); i++) // 若存在多个岔路点：搜索最优点
+                    {
+                        if (pointBreakRD.y > track.spurroad[i].y && pointBreakRD.x > track.spurroad[i].x)
+                        {
+                            if (pointBreakRD.x - track.spurroad[i].x < pointBreakRD.x - track.spurroad[indexSP].x)
+                                indexSP = i;
+                        }
+                    }
+
+                    if (pointBreakRD.y > track.spurroad[indexSP].y && pointBreakRD.x > track.spurroad[indexSP].x)
+                    {
+                        uint16_t rowEnd = rowBreakRightDown; // 赛道重搜索行
+                        for (int i = rowBreakRightDown; i < track.pointsEdgeRight.size(); i++)
+                        {
+                            if (track.pointsEdgeRight[i].x <= track.spurroad[indexSP].x)
+                            {
+                                rowEnd = i - 1;
+                                break;
+                            }
+                        }
+
+                        POINT startPoint = pointBreakRD;                                                              // 补线起点
+                        POINT endPoint = track.spurroad[indexSP];                                                     // 补线终点
+                        POINT midPoint = POINT((startPoint.x + endPoint.x) * 0.5, (startPoint.y + endPoint.y) * 0.5); // 补线中点
+                        vector<POINT> input = {startPoint, midPoint, endPoint};
+                        vector<POINT> repair = Bezier(0.04, input);
+
+                        track.pointsEdgeRight.resize(rowBreakRightDown); // 重绘右边缘
+                        for (int i = 0; i < repair.size(); i++)
+                        {
+                            track.pointsEdgeRight.push_back(repair[i]);
+                        }
+
+                        if (track.spurroad[indexSP].y > COLSIMAGE / 8)
+                            track.trackRecognition(true, rowEnd); // 赛道边缘重新搜索
+                        else
+                            track.pointsEdgeLeft.resize(rowEnd);
+
+                        repaired = true; // 补线成功
+                        _index = 3;
+                    }
+                }
+
+                if (!repaired && pointBreakRD.y < COLSIMAGE / 2) //[Step-2] 未搜索到岔路
+                {
+                    _index = 4;
+                    uint16_t rowBreakLU = rowBreakRightDown; // 左上拐点
+                    for (int i = rowBreakRightDown; i < track.pointsEdgeLeft.size() - 10; i++)
+                    {
+                        if (track.pointsEdgeLeft[i].y > 1)
+                            counterRec++;
+                        else
+                            counterRec = 0;
+                        if (counterRec > 2)
+                        {
+                            rowBreakLU = i - 2;
+                            break;
+                        }
+                    }
+
+                    POINT endPoint = POINT(pointBreakRD.x, 1); // 补线终点
+                    if (rowBreakLU < track.pointsEdgeLeft.size())
+                    {
+                        pointBreakLU = track.pointsEdgeLeft[rowBreakLU];            // 左上拐点
+                        endPoint = POINT((pointBreakRD.x + pointBreakLU.x) / 2, 1); // 补线终点
+                        track.pointsEdgeLeft.resize(rowBreakLU);                    // 重绘边缘
+                    }
+
+                    POINT startPoint = pointBreakRD;                                                              // 补线起点
+                    POINT midPoint = POINT((startPoint.x + endPoint.x) * 0.5, (startPoint.y + endPoint.y) * 0.5); // 补线中点
+                    vector<POINT> input = {startPoint, midPoint, endPoint};
+                    vector<POINT> repair = Bezier(0.05, input);
+
+                    track.pointsEdgeRight.resize(rowBreakRightDown); // 重绘右边缘
+                    for (int i = 0; i < repair.size(); i++)
+                    {
+                        track.pointsEdgeRight.push_back(repair[i]);
+                    }
+                    repaired = true; // 补线成功
+                }
+            }
+        }
+
+        // 直入十字处理
+        if (!repaired) // 如果写入十字未成功
+        {
+            // 通过色块突变-搜索十字类型
+            uint16_t counterStrightA = 0; // 计数器
+            uint16_t counterStrightB = 0; // 计数器
+            for (int i = 2; i < track.widthBlock.size() - 10; i++)
+            {
+                if(searchStraightCrossroad(track.pointsEdgeLeft,track.pointsEdgeRight))
                 {
                     crossroadType = CrossroadType::CrossroadStraight; // 直入十字
-                    crossStep = CrossroadStep::CrossEnter;
                     _index = 5;
                     break;
                 }
             }
-        }
-        if (crossStep == CrossroadStep::CrossEnter) // 直入十字
-        {
-            int indexSP = 0;
-            for (int i = 0; i < track.spurroad.size(); i++) // 挑选准确的岔路点
-            {
-                if (track.spurroad[i].x > track.spurroad[indexSP].y && track.spurroad[i].x < pointBreakRD.x)
-                    indexSP = i;
-            }
 
-            // 搜索左边缘
-            uint16_t rowBreakLU = searchBreakLeftUp(track.pointsEdgeLeft);   // 左上拐点搜索
-            uint16_t rowBreakLD = searchBreakLeftDown(track.pointsEdgeLeft); // 左下拐点搜索
-
-            // 优化左边缘
-            if (rowBreakLU > rowBreakLD && rowBreakLU < COLSIMAGE / 2 && rowBreakLD < COLSIMAGE / 2)
-            {
-                pointBreakLU = track.pointsEdgeLeft[rowBreakLU];
-                pointBreakLD = track.pointsEdgeLeft[rowBreakLD];
-
-                double k = (double)(pointBreakLU.y - pointBreakLD.y) /
-                           (double)(pointBreakLU.x - pointBreakLD.x);
-                double b = pointBreakLU.y - k * pointBreakLU.x;
-                for (int i = rowBreakLD; i <= rowBreakLU; i++)
-                {
-                    track.pointsEdgeLeft[i].y = (int)(k * track.pointsEdgeLeft[i].x + b);
-                }
-                crossStep = CrossroadStep::CrossInside;
-            }
-
-            if (track.spurroad[indexSP].y > COLSIMAGE / 3)
-            {
-                // 重新进行Track搜索
-                uint16_t rowEnd = 10;
-                for (int i = 10; i < track.pointsEdgeRight.size(); i++)
-                {
-                    if (track.pointsEdgeRight[i].x <= track.spurroad[indexSP].x)
-                    {
-                        rowEnd = i - 1;
-                        break;
-                    }
-                }
-
-                POINT startPoint = track.pointsEdgeRight[0];                                                  // 补线起点
-                POINT endPoint = track.spurroad[indexSP];                                                     // 补线终点
-                POINT midPoint = POINT((startPoint.x + endPoint.x) * 0.5, (startPoint.y + endPoint.y) * 0.5); // 补线中点
-                vector<POINT> input = {startPoint, midPoint, endPoint};
-                vector<POINT> repair = Bezier(0.04, input);
-
-                track.pointsEdgeRight.clear(); // 重绘右边缘
-                track.pointsEdgeRight = repair;
-
-                track.trackRecognition(true, rowEnd); // 赛道边缘重新搜索
-                crossStep = CrossroadStep::CrossInside;
-            }
-        }
-        if (crossStep == CrossroadStep::CrossInside)
-        {
-            counterStrightA = 0;
-            counterStrightB = 0;
-            repaired = false;
-            for (int i = 2; i < track.widthBlock.size() - 10; i++)
-            {
-                if (track.spurroad.size() > 0 && track.widthBlock[i].y > COLSIMAGE - 5)
-                {
-                    counterStrightA++;
-                }
-                if (counterStrightA)
-                {
-                    counterStrightB++;
-                    if (counterStrightB > 30)
-                    {
-                        counterStrightB = 0;
-                        counterStrightA = 0;
-                    }
-                    if (counterStrightA > 20) // 连续20行全宽
-                    {
-                        crossroadType = CrossroadType::CrossroadStraight1; // 直入十字
-                        crossStep = CrossroadStep::CrossExit;
-                        _index = 5;
-                        break;
-                    }
-                }
-            }
-
-            if (crossroadType == CrossroadType::CrossroadStraight1)
+            if (crossroadType == CrossroadType::CrossroadStraight) // 直入十字
             {
                 int indexSP = 0;
+                for (int i = 0; i < track.spurroad.size(); i++) // 挑选准确的岔路点
+                {
+                    if (track.spurroad[i].x > track.spurroad[indexSP].y && track.spurroad[i].x < pointBreakRD.x)
+                        indexSP = i;
+                }
+
                 // 搜索左边缘
                 uint16_t rowBreakLU = searchBreakLeftUp(track.pointsEdgeLeft);   // 左上拐点搜索
                 uint16_t rowBreakLD = searchBreakLeftDown(track.pointsEdgeLeft); // 左下拐点搜索
-                uint16_t rowBreakRU = searchBreakRightUp(track.pointsEdgeRight);
-                uint16_t rowBreakRD = searchBreakRightUp(track.pointsEdgeRight);
 
                 // 优化左边缘
                 if (rowBreakLU > rowBreakLD && rowBreakLU < COLSIMAGE / 2 && rowBreakLD < COLSIMAGE / 2)
@@ -195,7 +246,7 @@ public:
                     {
                         track.pointsEdgeLeft[i].y = (int)(k * track.pointsEdgeLeft[i].x + b);
                     }
-                    repaired = true;
+                    repaired = true; // 补线成功
                 }
 
                 if (track.spurroad[indexSP].y > COLSIMAGE / 3)
@@ -221,22 +272,12 @@ public:
                     track.pointsEdgeRight = repair;
 
                     track.trackRecognition(true, rowEnd); // 赛道边缘重新搜索
-                    repaired = true;
+                    repaired = true;                      // 补线成功
                 }
             }
         }
-        if (repaired == true && crossStep == CrossroadStep::CrossExit)
-        {
-            crossStep = CrossroadStep::stepNone;
-        }
 
-        if (crossStep >= 1)
-            cout << crossStep << ' ';
-
-        if (crossStep != CrossroadStep::stepNone)
-            return true;
-        else
-            return false;
+        return repaired;
     }
 
     /**
@@ -304,7 +345,6 @@ public:
 
 private:
     int _index = 0; // 测试
-    int num = 0;
 
     POINT pointBreakLU;
     POINT pointBreakLD;
@@ -321,19 +361,9 @@ private:
         CrossroadLeft,     // 左斜入十字
         CrossroadRight,    // 右斜入十字
         CrossroadStraight, // 直入十字
-        CrossroadStraight1,
-    };
-
-    enum CrossroadStep
-    {
-        stepNone,
-        CrossEnter,
-        CrossInside,
-        CrossExit,
     };
 
     CrossroadType crossroadType = CrossroadType::None; // 十字道路类型
-    CrossroadStep crossStep = CrossroadStep::stepNone;
 
     /**
      * @brief 搜索十字赛道突变行（左上）
@@ -492,7 +522,7 @@ private:
             else if (pointsEdgeRight[i].y > COLSIMAGE - 2)
                 counterRight++;
         }
-        if (counterLeft > 20 && counterRight > 20)
+        if (counterLeft > 30 && counterRight > 30)
             return true;
         else
             return false;

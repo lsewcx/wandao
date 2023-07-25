@@ -5,15 +5,12 @@
 #include "controlcenter_cal.cpp"
 // #include "farmland_detection.cpp"
 
-
 ImagePreprocess binarization;
 PathSearching path1;
-RingRecognition  ringRecognition;
+RingRecognition ringRecognition;
 TrackRecognition trackRecognition;
 ControlCenterCal controlCenterCal;
 // FarmlandDetection farmlandDetection;
-
-
 
 enum RoadType
 {
@@ -21,4 +18,5 @@ enum RoadType
   RingHandle,     // 环岛赛道处理
   FarmlandHandle, // 农田区域处理
   CrossHandle,    // 十字道路处理
+  GarageHandle,
 };
