@@ -14,13 +14,11 @@
 #include "use.cpp"
 #include <exception>
 #include "json.hpp"
-// #include "yyds.hpp"
 #include "cross_recognition.cpp" //十字道路识别与路径规划类
 #include <ctime>
 #include "Timer.cpp"
 #include <cmath>
 #include <thread>
-// #include "imgprocess.cpp"
 
 struct Params
 {
@@ -60,7 +58,6 @@ struct Params
 PerspectiveMapping ipm;
 Params params;
 CrossroadRecognition crossroadRecognition;
-// image imgprocess;  // 图像处理
 Timer timer;
 bool crosscounter = false;
 bool ringst = true;
