@@ -19,6 +19,7 @@
 #include "Timer.cpp"
 #include <cmath>
 #include <thread>
+#include "namespace.cpp"
 
 struct Params
 {
@@ -62,9 +63,12 @@ Timer timer;
 bool crosscounter = false;
 bool ringst = true;
 cv::Mat HighLight(cv::Mat input, int light);
+
+
 using namespace std;
 using namespace cv;
 using nlohmann::json;
+using namespace lse;
 
 std::string picturepath;
 std::string videopath;
@@ -83,6 +87,7 @@ struct MyException : public exception
         return "error";
     }
 };
+lse::PathSearching path8;
 
 cv::Mat removeHighlight(const cv::Mat &inputImage)
 {
@@ -232,6 +237,9 @@ void video(RoadType roadType)
 
         // 显示当前帧亮度
         std::cout << "Frame " << frameCount << " brightness: " << frameBrightness << std::endl;
+        cv::Mat fmew=frame.clone();
+        cv::Mat fmewk=binarization.imageBinaryzation(fmew);
+        path8.pathSearch(fmewk);
         int light1 = -50;
         cv::Mat fm = frame.clone();
         cv::Mat result1 = HighLight(frame, light1);
