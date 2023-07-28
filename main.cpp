@@ -19,7 +19,7 @@
 #include "Timer.cpp"
 #include <cmath>
 #include <thread>
-#include "namespace.cpp"
+#include "opencvjiaodian.cpp"
 
 struct Params
 {
@@ -64,12 +64,12 @@ bool crosscounter = false;
 bool ringst = true;
 cv::Mat HighLight(cv::Mat input, int light);
 
-
 using namespace std;
 using namespace cv;
 using nlohmann::json;
 using namespace lse;
 
+lse::tuxiang tuxiang1;
 std::string picturepath;
 std::string videopath;
 cv::Mat src_tupian;
@@ -87,7 +87,6 @@ struct MyException : public exception
         return "error";
     }
 };
-lse::PathSearching path8;
 
 cv::Mat removeHighlight(const cv::Mat &inputImage)
 {
@@ -215,6 +214,8 @@ uint16_t circlesThis = 1;    // 智能车当前运行的圈数
 uint16_t countercircles = 0; // 圈数计数器
 double totalBrightness = 0;
 int frameCount = 0;
+
+
 void video(RoadType roadType)
 {
     VideoCapture cap;
@@ -237,12 +238,12 @@ void video(RoadType roadType)
 
         // 显示当前帧亮度
         std::cout << "Frame " << frameCount << " brightness: " << frameBrightness << std::endl;
-        cv::Mat fmew=frame.clone();
-        cv::Mat fmewk=binarization.imageBinaryzation(fmew);
-        path8.pathSearch(fmewk);
+        cv::Mat fmew = frame.clone();
+        cv::Mat fmewk = binarization.imageBinaryzation(fmew);
+        // path8.pathSearch(fmewk);
         int light1 = -50;
         cv::Mat fm = frame.clone();
-        cv::Mat result1 = HighLight(frame, light1);
+        cv::Mat result1 = tuxiang1.HighLight(frame, light1);
         //  illuminationChange(frame);
         // reduceReflection(frame);
         // cv::equalizeHist(frame,frame123);

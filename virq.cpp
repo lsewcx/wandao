@@ -12,9 +12,9 @@ class bass
 public:
     virtual void abc()
     {
-        int a=0;
+        int a = 0;
         a++;
-        std::cout<<a<<endl;
+        std::cout << a << endl;
     }
 };
 class deas : public bass
@@ -22,9 +22,9 @@ class deas : public bass
 public:
     void abc() override
     {
-        int b=0;
-        b=8;
-        std::cout<<b<<endl;
+        int b = 0;
+        b = 8;
+        std::cout << b << endl;
     }
 };
 int main()
@@ -32,6 +32,8 @@ int main()
     bass *xuhanshu = new deas();
     xuhanshu->abc();
     delete xuhanshu;
+    deas hu;
+    hu.abc();
     system("pause");
     return 0;
 }
